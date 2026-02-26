@@ -1,79 +1,54 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
-import { Text, View } from "react-native";
-
-const icons = {
-  home: "home-outline",
-  events: "calendar-outline",
-};
-
-const TabIcon = ({ focused, icon, title }: any) => {
-  if (focused) {
-    return (
-      <View className="flex-row flex-1 mt-4 justify-center items-center rounded-full overflow-hidden gap-x-1 bg-neon-orange min-h-16 min-w-[112px]">
-        <Ionicons name={icon} size={24} color="#000000" />
-        <Text className="text-black-soft text-base font-geistBold">
-          {title}
-        </Text>
-      </View>
-    );
-  } else {
-    return (
-      <View className="justify-center items-center mt-4 rounded-full min-h-16">
-        <Ionicons name={icon} size={24} color="#FF5F1F" />
-      </View>
-    );
-  }
-};
+import { useTheme } from "../../src/context/ThemeContext";
 
 const _Layout = () => {
+  const { isDark, resolvedTheme } = useTheme();
+
   return (
     <Tabs
       screenOptions={{
         tabBarShowLabel: false,
-        tabBarLabelStyle: {
-          fontFamily: "GeistMono-Regular",
-          fontSize: 12,
+        headerShown: true,
+        headerStyle: {
+          backgroundColor: isDark ? "#000000" : "#ffffff",
         },
         headerTitleStyle: {
-          fontFamily: "GeistMono-Regular",
+          color: isDark ? "#ffffff" : "#1f2937",
+          fontWeight: "600",
+          fontSize: 20,
         },
-        tabBarItemStyle: {
-          width: "100%",
-          height: "100%",
-          justifyContent: "center",
-          alignItems: "center",
-        },
+        headerShadowVisible: false,
+        headerTintColor: isDark ? "#ffffff" : "#1f2937",
         tabBarStyle: {
-          backgroundColor: "#1A1A1A",
-          borderRadius: 50,
-          marginHorizontal: 32,
-          marginBottom: 30,
-          height: 56,
-          position: "absolute",
-          overflow: "hidden",
-          borderWidth: 1,
-          borderColor: "#1A1A1A",
+          backgroundColor: isDark ? "#000000" : "#ffffff",
+          borderTopWidth: 1,
+          borderTopColor: isDark ? "#1A1A1A" : "#e5e7eb",
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 8,
         },
+        tabBarActiveTintColor: "#C0301E",
+        tabBarInactiveTintColor: isDark ? "#6b7280" : "#9ca3af",
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
-          headerShown: false,
-          tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={icons.home} title="Home" />
+          title: "LinkVault",
+          headerTitle: "LinkVault",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="folder-outline" size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: "Events",
-          headerShown: false,
-          tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={icons.events} title="Events" />
+          title: "Settings",
+          headerTitle: "Settings",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="settings-outline" size={size} color={color} />
           ),
         }}
       />

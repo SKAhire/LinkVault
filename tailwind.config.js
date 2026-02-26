@@ -1,8 +1,8 @@
-
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: ["./app/**/*.{js,jsx,ts,tsx}", "./components/**/*.{js,jsx,ts,tsx}"],
+  content: ["./app/**/*.{js,jsx,ts,tsx}", "./src/**/*.{js,jsx,ts,tsx}"],
   presets: [require("nativewind/preset")],
+  darkMode: "class",
   theme: {
     extend: {
       fontFamily: {
@@ -10,21 +10,21 @@ module.exports = {
         geistBold: ["GeistMono-Bold"],
       },
       colors: {
+        // Brand Colors
+        primary: "#C0301E",
+        secondary: "#F6DA9D",
+        baseBlack: "#000000",
+
         // Core theme
         black: {
           DEFAULT: "#000000",
-          soft: "#1A1A1A", // for subtle contrasts (grid bg, cards)
-        },
-        neon: {
-          orange: "#FF5F1F", // main accent
-          soft: "#FFB347", // secondary / highlight
+          soft: "#1A1A1A",
         },
 
-        // Utility colors for UI
-        grid: {
-          past: "#FF5F1F", // marked box
-          current: "#FFB347", // highlighted glow/current
-          future: "#222222", // upcoming box
+        // Neutral scale for dark mode
+        neutral: {
+          800: "#1A1A1A",
+          900: "#0A0A0A",
         },
       },
     },

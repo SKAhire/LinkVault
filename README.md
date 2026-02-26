@@ -1,50 +1,185 @@
-# Welcome to your Expo app 👋
+# LinkVault
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+> A minimal, structured mobile app for organizing saved links with clarity and intent.
 
-## Get started
+LinkVault helps you build a personal knowledge system by categorizing, managing, and searching saved resources in a clean, distraction-free environment.
 
-1. Install dependencies
+---
 
-   ```bash
-   npm install
-   ```
+## Overview
 
-2. Start the app
+LinkVault is a productivity-focused React Native application built with Expo. It allows users to organize links into meaningful categories and manage them with a structured, modern UI.
 
-   ```bash
-   npx expo start
-   ```
+> **Note:** This is not a security or encryption tool. It is a structured organization tool built for clarity, order, and intentional curation.
 
-In the output, you'll find options to open the app in a
+---
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Features
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+### ✅ Step 1 (Current)
 
-## Get a fresh project
+- Create and manage categories
+- Default categories: **Learn**, **Rewatch**, **Inspiration**, **Fitness**, **Career**
+- Add and store links under categories
+- Real-time search
+- Download / export support
+- Light and Dark theme support
+- SQLite local persistence
+- Modular, production-ready UI
 
-When you're ready, run:
+---
 
-```bash
-npm run reset-project
+## Tech Stack
+
+| Technology | Purpose |
+|---|---|
+| React Native | Core framework |
+| Expo | Build tooling & native APIs |
+| NativeWind | Tailwind CSS for React Native |
+| Expo SQLite | Local persistent storage |
+| React Navigation | Screen navigation |
+| Kotlin (via Expo Prebuild) | Android native support |
+
+---
+
+## Project Structure
+
+```
+src/
+  components/     # Reusable UI components
+  screens/        # Application screens
+  navigation/     # Navigation configuration
+  database/       # SQLite logic and queries
+  hooks/          # Custom hooks
+  constants/      # Theme and configuration
+App.tsx
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### Architecture Principles
 
-## Learn more
+- Small, reusable components
+- Clear separation of concerns
+- Database logic isolated from UI
 
-To learn more about developing your project with Expo, look at the following resources:
+---
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Installation
 
-## Join the community
+### 1. Clone the repository
 
-Join our community of developers creating universal apps.
+```bash
+git clone https://github.com/your-username/linkvault.git
+cd linkvault
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+or
+
+```bash
+yarn install
+```
+
+### 3. Start the development server
+
+```bash
+npx expo start
+```
+
+### Android Native Setup (Optional)
+
+If you need direct access to Android native code:
+
+```bash
+npx expo prebuild
+```
+
+This generates the `/android` directory for Kotlin and native module customization.
+
+---
+
+## Database
+
+LinkVault uses SQLite for local persistent storage.
+
+**Tables:** `categories`, `links`
+
+**Structure:**
+- One-to-many relationship between categories and links
+- Async database operations
+- Encapsulated query layer
+
+Database logic lives in `src/database/`.
+
+---
+
+## Design System
+
+### Color Palette
+
+| Role | Color | Preview |
+|---|---|---|
+| Primary | `#C0301E` | 🔴 |
+| Secondary | `#000000` | ⬛ |
+| Accent | `#F6DA9D` | 🟡 |
+
+### Styling Principles
+
+- NativeWind utility classes only — no `StyleSheet`-based UI
+- Consistent spacing scale
+- Reusable card and modal components
+- Theme-aware design
+
+---
+
+## Search
+
+- Case-insensitive filtering
+- Real-time updates
+- Optimized SQLite queries
+
+---
+
+## Roadmap
+
+### 🔜 Step 2
+
+- [ ] Share-to-app integration
+- [ ] Deep linking
+- [ ] Improved metadata extraction
+
+### 🔮 Future Enhancements
+
+- [ ] Tag system
+- [ ] Bulk actions
+- [ ] Import / Export JSON
+- [ ] Optional cloud sync
+- [ ] Backup support
+
+---
+
+## Contributing
+
+Contributions are welcome!
+
+**Guidelines:**
+- Keep components modular
+- Use NativeWind for styling
+- Maintain theme consistency
+- Keep database logic clean and structured
+
+---
+
+## License
+
+[MIT License](LICENSE)
+
+---
+
+## Author
+
+Built by [Guru](https://github.com/SKAhire)
