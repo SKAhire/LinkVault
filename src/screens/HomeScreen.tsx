@@ -10,7 +10,6 @@ import {
 } from "react-native";
 import CategoryItem from "../components/CategoryItem";
 import CustomModal from "../components/CustomModal";
-import SearchBar from "../components/SearchBar";
 import { useTheme } from "../context/ThemeContext";
 import {
   createCategory,
@@ -34,12 +33,14 @@ const HomeScreen: React.FC = () => {
 
   const loadCategories = useCallback(async () => {
     try {
+      console.log("[HOME] Loading categories...");
       const data = searchQuery.trim()
         ? await searchCategories(searchQuery)
         : await getAllCategories();
+      console.log("[HOME] Loaded categories:", data.length);
       setCategories(data);
     } catch (error) {
-      console.error("Error loading categories:", error);
+      console.error("[HOME] Error loading categories:", error);
     }
   }, [searchQuery]);
 

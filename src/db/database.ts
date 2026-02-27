@@ -48,12 +48,14 @@ const runMigrations = async (
       "UPDATE categories SET isDeletable = 0 WHERE name = 'Inbox'",
     );
   } catch (error) {
-    console.log("Migration note:", error);
+    console.error("[DB] Migration error:", error);
   }
 };
 
 export const initDatabase = async (): Promise<void> => {
+  console.log("[DB] Starting database initialization...");
   const database = await getDatabase();
+  console.log("[DB] Database opened, creating tables...");
 
   // Create categories table
   await database.execAsync(`
@@ -91,10 +93,13 @@ export const initDatabase = async (): Promise<void> => {
     );
 
     if (!existing) {
+      console.log(`[DB] Seeding category: ${category.name}`);
       await database.runAsync(
         "INSERT INTO categories (name, isDeletable, createdAt) VALUES (?, ?, ?)",
         [category.name, category.isDeletable, now],
       );
+    } else {
+      console.log(`[DB] Category already exists: ${category.name}`);
     }
   }
 };

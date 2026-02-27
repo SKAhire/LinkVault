@@ -2,7 +2,9 @@ import { Category, CategoryInput, CategoryWithCount } from "../types";
 import { getDatabase } from "./database";
 
 export const getAllCategories = async (): Promise<CategoryWithCount[]> => {
+  console.log("[CategoryService] getAllCategories called");
   const database = await getDatabase();
+  console.log("[CategoryService] Got database connection");
 
   const categories = await database.getAllAsync<CategoryWithCount>(
     `SELECT c.*, COUNT(l.id) as linkCount 
@@ -12,6 +14,7 @@ export const getAllCategories = async (): Promise<CategoryWithCount[]> => {
      ORDER BY c.isDeletable ASC, c.createdAt ASC`,
   );
 
+  console.log("[CategoryService] Categories query result:", categories.length);
   return categories;
 };
 
@@ -29,6 +32,7 @@ export const getCategoryById = async (id: number): Promise<Category | null> => {
 export const createCategory = async (
   input: CategoryInput,
 ): Promise<Category> => {
+  console.log("[CategoryService] createCategory called:", input.name);
   const database = await getDatabase();
   const now = new Date().toISOString();
 
@@ -37,6 +41,10 @@ export const createCategory = async (
     [input.name, 1, now],
   );
 
+  console.log(
+    "[CategoryService] Created category with id:",
+    result.lastInsertRowId,
+  );
   return {
     id: result.lastInsertRowId,
     name: input.name,

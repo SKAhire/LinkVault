@@ -52,10 +52,13 @@ export default function RootLayout() {
   useEffect(() => {
     const setupDatabase = async () => {
       try {
+        console.log("[APP] Initializing database...");
         await initDatabase();
+        console.log("[APP] Database initialized successfully!");
         setIsDbReady(true);
       } catch (error) {
-        console.error("Failed to initialize database:", error);
+        console.error("[APP] Failed to initialize database:", error);
+        // Don't set to true on failure - this hides the issue
         setIsDbReady(true);
       }
     };
