@@ -1,4 +1,4 @@
-package com.undead_guru.LinkVault
+package com.undeadguru.linkvault
 
 import android.app.Application
 import android.content.res.Configuration

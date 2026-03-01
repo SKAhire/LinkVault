@@ -1,7 +1,7 @@
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, StatusBar, View } from "react-native";
+import { ActivityIndicator, StatusBar, StyleSheet, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "../global.css";
 import { ThemeProvider, useTheme } from "../src/context/ThemeContext";
@@ -55,10 +55,11 @@ export default function RootLayout() {
         console.log("[APP] Initializing database...");
         await initDatabase();
         console.log("[APP] Database initialized successfully!");
-        setIsDbReady(true);
       } catch (error) {
+        // Log the error but don't block the app — screens handle empty states.
         console.error("[APP] Failed to initialize database:", error);
-        // Don't set to true on failure - this hides the issue
+      } finally {
+        // Always unblock the app. If DB failed, screens will show empty state.
         setIsDbReady(true);
       }
     };
@@ -68,12 +69,15 @@ export default function RootLayout() {
 
   if (!fontsLoaded || !isDbReady) {
     return (
-      <View className="flex-1 justify-center items-center bg-white dark:bg-baseBlack">
+      <View style={styles.loading}>
         <ActivityIndicator size="large" color="#C0301E" />
       </View>
     );
   }
 
+  // ThemeProvider wraps AppLayout because AppLayout calls useTheme().
+  // ThemeProvider no longer blocks render (removed isLoading null return),
+  // so this tree will always mount correctly.
   return (
     <ThemeProvider>
       <GestureHandlerRootView style={{ flex: 1 }}>
@@ -82,3 +86,12 @@ export default function RootLayout() {
     </ThemeProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  loading: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#ffffff",
+  },
+});

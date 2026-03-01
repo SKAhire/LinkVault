@@ -26,9 +26,10 @@ interface ThemeProviderProps {
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const systemColorScheme = useColorScheme();
   const [theme, setThemeState] = useState<ThemeMode>("system");
-  const [isLoading, setIsLoading] = useState(true);
 
-  // Load saved theme preference from database
+  // Load saved theme preference from database.
+  // NOTE: initDatabase() in _layout.tsx runs BEFORE ThemeProvider mounts,
+  // so the settings table is guaranteed to exist by the time this runs.
   useEffect(() => {
     const loadTheme = async () => {
       try {
@@ -41,16 +42,17 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
           setThemeState(result.value as ThemeMode);
         }
       } catch (error) {
-        // Settings table might not exist, use default
-        console.log("Using default theme");
-      } finally {
-        setIsLoading(false);
+        // Settings table might not exist on first run — default "system" is fine.
+        console.log(
+          "[Theme] Could not load saved theme, using system default:",
+          error,
+        );
       }
     };
     loadTheme();
   }, []);
 
-  // Calculate resolved theme based on mode
+  // Resolved theme based on current mode
   const resolvedTheme: "light" | "dark" =
     theme === "system"
       ? systemColorScheme === "dark"
@@ -64,23 +66,16 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     setThemeState(newTheme);
     try {
       const db = await getDatabase();
-      // Ensure settings table exists
-      await db.execAsync(`
-        CREATE TABLE IF NOT EXISTS settings (
-          key TEXT PRIMARY KEY,
-          value TEXT NOT NULL
-        );
-      `);
       await db.runAsync(
         "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
         ["theme", newTheme],
       );
     } catch (error) {
-      console.error("Failed to save theme:", error);
+      console.error("[Theme] Failed to save theme:", error);
     }
   };
 
-  // Update appearance when theme changes
+  // Sync RN Appearance API when theme changes
   useEffect(() => {
     if (theme === "system") {
       Appearance.setColorScheme(undefined);
@@ -89,10 +84,11 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     }
   }, [theme]);
 
-  if (isLoading) {
-    return null;
-  }
-
+  // IMPORTANT: Do NOT return null here while "loading" the theme.
+  // Returning null causes the entire app to render a blank screen in production.
+  // Instead we render immediately with the default "system" theme, and the
+  // useEffect above will update it asynchronously — users will never notice
+  // the brief moment before the persisted preference loads.
   return (
     <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme, isDark }}>
       {children}

@@ -20,7 +20,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.undead_guru.LinkVault"
+      "package": "com.undeadguru.linkvault"
     },
     "web": {
       "bundler": "metro",
@@ -41,7 +41,18 @@
           }
         }
       ],
-      "expo-sqlite"
+      [
+        "expo-sqlite",
+        {
+          "useSQLCipher": false,
+          "android": {
+            "enableFTS": true
+          },
+          "ios": {
+            "enableFTS": true
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
