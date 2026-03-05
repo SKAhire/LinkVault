@@ -1,4 +1,4 @@
-package com.undeadguru.linkvault
+package com.undead_guru.LinkVault
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build
