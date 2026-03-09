@@ -10,7 +10,6 @@ import {
 } from "react-native";
 import LinkCard from "../components/LinkCard";
 import LinkModal from "../components/LinkModal";
-import SearchBar from "../components/SearchBar";
 import { useTheme } from "../context/ThemeContext";
 import { getAllCategories } from "../db/categoryService";
 import {
@@ -22,7 +21,7 @@ import {
 } from "../db/linkService";
 import { Category, Link as LinkType } from "../types";
 
-const LinksScreen: React.FC = () => {
+const LinksScreen: React.FC<{ prefilledUrl?: string }> = ({ prefilledUrl }) => {
   const { categoryId, categoryName } = useLocalSearchParams<{
     categoryId: string;
     categoryName: string;
@@ -36,6 +35,14 @@ const LinksScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingLink, setEditingLink] = useState<LinkType | null>(null);
+
+  // Handle prefilled URL from share intent
+  useEffect(() => {
+    if (prefilledUrl) {
+      console.log("[LinksScreen] Received prefilled URL:", prefilledUrl);
+      setModalVisible(true);
+    }
+  }, [prefilledUrl]);
 
   const catId = parseInt(categoryId || "0", 10);
 
@@ -194,7 +201,7 @@ const LinksScreen: React.FC = () => {
         onClose={handleCloseModal}
         onSave={handleSaveLink}
         categories={categories}
-        initialUrl={editingLink?.url}
+        initialUrl={editingLink?.url || prefilledUrl}
         initialCategoryId={editingLink?.categoryId || catId}
       />
     </View>

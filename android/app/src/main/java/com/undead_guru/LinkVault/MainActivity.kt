@@ -1,6 +1,7 @@
 package com.undead_guru.LinkVault
 import expo.modules.splashscreen.SplashScreenManager
 
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 
@@ -42,6 +43,15 @@ class MainActivity : ReactActivity() {
               mainComponentName,
               fabricEnabled
           ){})
+  }
+
+  /**
+   * Handle incoming intents for singleTask launch mode.
+   * This ensures the app receives shared intents even when already running.
+   */
+  override fun onNewIntent(intent: Intent?) {
+    super.onNewIntent(intent)
+    setIntent(intent)
   }
 
   /**

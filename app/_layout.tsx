@@ -1,14 +1,48 @@
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, StatusBar, StyleSheet, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "../global.css";
 import { ThemeProvider, useTheme } from "../src/context/ThemeContext";
 import { initDatabase } from "../src/db/database";
+import {
+  ShareIntentProvider,
+  useSharedLink,
+} from "../src/share/ShareIntentProvider";
+
+/**
+ * Inner layout component that has access to router
+ * Handles navigation when share intent URL is received
+ */
 
 function AppLayout() {
   const { isDark } = useTheme();
+  const router = useRouter();
+  const { sharedUrl, consumeSharedUrl } = useSharedLink();
+
+  // Handle navigation when share intent URL is received
+  useEffect(() => {
+    if (sharedUrl) {
+      console.log(
+        "[AppLayout] Share intent URL received, navigating to LinksScreen:",
+        sharedUrl,
+      );
+
+      // Navigate to LinksScreen with the prefilled URL
+      router.push({
+        pathname: "/links",
+        params: {
+          categoryId: "1", // Default category ID - can be customized
+          categoryName: "All Links",
+          prefilledUrl: sharedUrl,
+        },
+      });
+
+      // Consume the URL so it doesn't trigger again
+      consumeSharedUrl();
+    }
+  }, [sharedUrl, router, consumeSharedUrl]);
 
   return (
     <>
@@ -80,9 +114,11 @@ export default function RootLayout() {
   // so this tree will always mount correctly.
   return (
     <ThemeProvider>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <AppLayout />
-      </GestureHandlerRootView>
+      <ShareIntentProvider>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <AppLayout />
+        </GestureHandlerRootView>
+      </ShareIntentProvider>
     </ThemeProvider>
   );
 }

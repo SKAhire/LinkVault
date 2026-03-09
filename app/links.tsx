@@ -4,7 +4,10 @@ import { useTheme } from "../src/context/ThemeContext";
 import LinksScreen from "../src/screens/LinksScreen";
 
 export default function Links() {
-  const { categoryName } = useLocalSearchParams<{ categoryName?: string }>();
+  const { categoryName, prefilledUrl } = useLocalSearchParams<{
+    categoryName?: string;
+    prefilledUrl?: string;
+  }>();
   const navigation = useNavigation();
   const { isDark } = useTheme();
 
@@ -25,5 +28,6 @@ export default function Links() {
     }
   }, [categoryName, navigation, isDark]);
 
-  return <LinksScreen />;
+  // Pass the prefilledUrl to LinksScreen to auto-open the modal
+  return <LinksScreen prefilledUrl={prefilledUrl} />;
 }
