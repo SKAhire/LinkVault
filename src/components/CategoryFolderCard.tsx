@@ -110,11 +110,15 @@ const CategoryFolderCard: React.FC<CategoryFolderCardProps> = memo(
         className="w-[30%] mx-1 my-2 py-3 rounded-xl items-center justify-center bg-transparent"
         style={{
           minHeight: 140,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.05,
-          shadowRadius: 2,
-          elevation: 1,
+          ...(isDark
+            ? {
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.05,
+                shadowRadius: 2,
+                elevation: 1,
+              }
+            : {}),
         }}
         onPress={onPress}
         onLongPress={handleLongPress}
@@ -125,7 +129,7 @@ const CategoryFolderCard: React.FC<CategoryFolderCardProps> = memo(
         <View className="mb-1">
           <MaterialIcons
             name="folder"
-            size={64}
+            size={80}
             color={isDark ? "#fbbf24" : "#f59e0b"}
           />
         </View>

@@ -23,7 +23,10 @@ function AppLayout() {
   const router = useRouter();
   const { sharedUrl, consumeSharedUrl } = useSharedLink();
 
-  // Handle navigation when share intent URL is received
+  const bgColor = isDark ? "#000000" : "#f9fafb";
+  const headerColor = isDark ? "#000000" : "#ffffff";
+  const textColor = isDark ? "#ffffff" : "#1f2937";
+
   useEffect(() => {
     if (sharedUrl) {
       console.log(
@@ -31,41 +34,40 @@ function AppLayout() {
         sharedUrl,
       );
 
-      // Navigate to LinksScreen with the prefilled URL
       router.push({
         pathname: "/links",
         params: {
-          categoryId: "1", // Default category ID - can be customized
+          categoryId: "1",
           categoryName: "All Links",
           prefilledUrl: sharedUrl,
         },
       });
 
-      // Consume the URL so it doesn't trigger again
       consumeSharedUrl();
     }
   }, [sharedUrl, router, consumeSharedUrl]);
 
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: bgColor }}>
       <StatusBar
         barStyle={isDark ? "light-content" : "dark-content"}
-        backgroundColor={isDark ? "#000000" : "#f9fafb"}
+        backgroundColor={bgColor}
       />
+
       <Stack
         screenOptions={{
           headerShown: true,
           headerStyle: {
-            backgroundColor: isDark ? "#000000" : "#ffffff",
+            backgroundColor: headerColor,
           },
           headerTitleStyle: {
-            color: isDark ? "#ffffff" : "#1f2937",
+            color: textColor,
             fontWeight: "600",
           },
-          headerTintColor: isDark ? "#ffffff" : "#1f2937",
+          headerTintColor: textColor,
           headerShadowVisible: false,
           contentStyle: {
-            backgroundColor: isDark ? "#000000" : "#f9fafb",
+            backgroundColor: bgColor,
           },
           animation: "slide_from_right",
         }}
@@ -73,7 +75,7 @@ function AppLayout() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="links" options={{ headerShown: true }} />
       </Stack>
-    </>
+    </View>
   );
 }
 
@@ -92,10 +94,8 @@ export default function RootLayout() {
         await initDatabase();
         console.log("[APP] Database initialized successfully!");
       } catch (error) {
-        // Log the error but don't block the app — screens handle empty states.
         console.error("[APP] Failed to initialize database:", error);
       } finally {
-        // Always unblock the app. If DB failed, screens will show empty state.
         setIsDbReady(true);
       }
     };
@@ -111,9 +111,6 @@ export default function RootLayout() {
     );
   }
 
-  // ThemeProvider wraps AppLayout because AppLayout calls useTheme().
-  // ThemeProvider no longer blocks render (removed isLoading null return),
-  // so this tree will always mount correctly.
   return (
     <ThemeProvider>
       <ShareIntentProvider>
