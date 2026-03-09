@@ -3,6 +3,7 @@ import { Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, StatusBar, StyleSheet, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import Toast from "react-native-toast-message";
 import "../global.css";
 import { ThemeProvider, useTheme } from "../src/context/ThemeContext";
 import { initDatabase } from "../src/db/database";
@@ -10,6 +11,7 @@ import {
   ShareIntentProvider,
   useSharedLink,
 } from "../src/share/ShareIntentProvider";
+import { toastConfig } from "../src/utils/toast";
 
 /**
  * Inner layout component that has access to router
@@ -117,6 +119,7 @@ export default function RootLayout() {
       <ShareIntentProvider>
         <GestureHandlerRootView style={{ flex: 1 }}>
           <AppLayout />
+          <Toast config={toastConfig} />
         </GestureHandlerRootView>
       </ShareIntentProvider>
     </ThemeProvider>

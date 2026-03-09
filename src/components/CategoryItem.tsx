@@ -48,7 +48,8 @@ const CategoryItem: React.FC<CategoryItemProps> = memo(
               isDark ? "text-gray-400" : "text-gray-500"
             }`}
           >
-            {category.linkCount} {category.linkCount === 1 ? "link" : "links"}
+            {String(category.linkCount)}{" "}
+            {category.linkCount === 1 ? "link" : "links"}
           </Text>
         </View>
 

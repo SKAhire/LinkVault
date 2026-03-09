@@ -20,6 +20,7 @@ import {
   updateLink,
 } from "../db/linkService";
 import { Category, Link as LinkType } from "../types";
+import { toast } from "../utils/toast";
 
 const LinksScreen: React.FC<{ prefilledUrl?: string }> = ({ prefilledUrl }) => {
   const { categoryId, categoryName } = useLocalSearchParams<{
@@ -108,13 +109,16 @@ const LinksScreen: React.FC<{ prefilledUrl?: string }> = ({ prefilledUrl }) => {
       try {
         if (editingLink) {
           await updateLink(editingLink.id, { url, categoryId });
+          toast.success("Link updated");
         } else {
           await createLink({ url, categoryId });
+          toast.success("Link saved");
         }
         setEditingLink(null);
         await loadLinks();
       } catch (error) {
         console.error("Error saving link:", error);
+        toast.error("Failed to save link");
       }
     },
     [editingLink, loadLinks],

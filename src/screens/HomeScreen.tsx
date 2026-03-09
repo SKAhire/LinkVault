@@ -8,9 +8,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import CategoryItem from "../components/CategoryItem";
+
+import CategoryFolderCard from "../components/CategoryFolderCard";
 import CustomModal from "../components/CustomModal";
 import { useTheme } from "../context/ThemeContext";
+
 import {
   createCategory,
   deleteCategory,
@@ -18,7 +20,9 @@ import {
   searchCategories,
   updateCategory,
 } from "../db/categoryService";
+
 import { CategoryWithCount } from "../types";
+import { toast } from "../utils/toast";
 
 const HomeScreen: React.FC = () => {
   const router = useRouter();
@@ -33,14 +37,13 @@ const HomeScreen: React.FC = () => {
 
   const loadCategories = useCallback(async () => {
     try {
-      console.log("[HOME] Loading categories...");
       const data = searchQuery.trim()
         ? await searchCategories(searchQuery)
         : await getAllCategories();
-      console.log("[HOME] Loaded categories:", data.length);
+
       setCategories(data);
     } catch (error) {
-      console.error("[HOME] Error loading categories:", error);
+      console.error(error);
     }
   }, [searchQuery]);
 
@@ -57,11 +60,9 @@ const HomeScreen: React.FC = () => {
   }, [loadCategories]);
 
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      loadCategories();
-    }, 300);
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery, loadCategories]);
+    const t = setTimeout(loadCategories, 300);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
 
   const handleCategoryPress = useCallback(
     (category: CategoryWithCount) => {
@@ -83,55 +84,45 @@ const HomeScreen: React.FC = () => {
 
   const handleDeleteCategory = useCallback(
     async (category: CategoryWithCount) => {
-      try {
-        await deleteCategory(category.id);
-        await loadCategories();
-      } catch (error) {
-        console.error("Error deleting category:", error);
+      if (!category.isDeletable) {
+        toast.error("This category cannot be deleted");
+        return;
       }
+
+      await deleteCategory(category.id);
+      toast.success("Category deleted");
+
+      loadCategories();
     },
     [loadCategories],
   );
 
   const handleSaveCategory = useCallback(
     async (name: string) => {
-      try {
-        if (editingCategory) {
-          await updateCategory(editingCategory.id, { name });
-        } else {
-          await createCategory({ name });
-        }
-        setEditingCategory(null);
-        await loadCategories();
-      } catch (error) {
-        console.error("Error saving category:", error);
+      if (editingCategory) {
+        await updateCategory(editingCategory.id, { name });
+        toast.success("Category renamed");
+      } else {
+        await createCategory({ name });
+        toast.success("Category created");
       }
+
+      setEditingCategory(null);
+      loadCategories();
     },
     [editingCategory, loadCategories],
   );
 
-  const handleCloseModal = useCallback(() => {
-    setModalVisible(false);
-    setEditingCategory(null);
-  }, []);
-
-  const renderItem = useCallback(
-    ({ item }: { item: CategoryWithCount }) => (
-      <View className="mb-4">
-        <CategoryItem
-          category={item}
-          onPress={() => handleCategoryPress(item)}
-          onEdit={() => handleEditCategory(item)}
-          onDelete={() => handleDeleteCategory(item)}
-        />
-      </View>
-    ),
-    [handleCategoryPress, handleEditCategory, handleDeleteCategory],
-  );
-
-  const keyExtractor = useCallback(
-    (item: CategoryWithCount) => item.id.toString(),
-    [],
+  const renderItem = ({ item }: { item: CategoryWithCount }) => (
+    <CategoryFolderCard
+      id={item.id.toString()}
+      name={item.name}
+      linkCount={item.linkCount}
+      isDeletable={item.isDeletable}
+      onPress={() => handleCategoryPress(item)}
+      onEdit={() => handleEditCategory(item)}
+      onDelete={() => handleDeleteCategory(item)}
+    />
   );
 
   const ListEmptyComponent = () => (
@@ -142,57 +133,49 @@ const HomeScreen: React.FC = () => {
         color={isDark ? "#6b7280" : "#9ca3af"}
       />
       <Text
-        className={`mt-4 text-lg ${isDark ? "text-gray-400" : "text-gray-500"}`}
+        className={`mt-4 text-lg ${
+          isDark ? "text-gray-400" : "text-gray-500"
+        }`}
       >
-        {searchQuery ? "No categories found" : "No categories yet"}
-      </Text>
-      <Text className={`mt-2 ${isDark ? "text-gray-500" : "text-gray-400"}`}>
-        {searchQuery ? "Try a different search" : "Tap + to add a category"}
+        No categories yet
       </Text>
     </View>
   );
 
   return (
     <View className={`flex-1 ${isDark ? "bg-baseBlack" : "bg-gray-50"}`}>
-      {/* Search Bar */}
-      {/* <View className="px-5 py-4 pb-2">
-        <SearchBar
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholder="Search categories..."
-        />
-      </View> */}
-
-      {/* Categories List */}
       <FlatList
         data={categories}
         renderItem={renderItem}
-        keyExtractor={keyExtractor}
-        contentContainerStyle={{ padding: 20, paddingTop: 8, flexGrow: 1 }}
+        keyExtractor={(item) => item.id.toString()}
+        numColumns={3}
+        contentContainerStyle={{
+          paddingHorizontal: 6,
+          paddingTop: 12,
+        }}
+        columnWrapperStyle={{
+          justifyContent: "flex-start",
+        }}
         ListEmptyComponent={ListEmptyComponent}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor="#C0301E"
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
         showsVerticalScrollIndicator={false}
       />
 
-      {/* FAB */}
       <TouchableOpacity
         className="absolute bottom-6 right-6 w-14 h-14 bg-primary rounded-full justify-center items-center shadow-lg"
         onPress={() => setModalVisible(true)}
-        activeOpacity={0.8}
       >
         <Ionicons name="add" size={28} color="white" />
       </TouchableOpacity>
 
-      {/* Add/Edit Category Modal */}
       <CustomModal
         visible={modalVisible}
-        onClose={handleCloseModal}
+        onClose={() => {
+          setModalVisible(false);
+          setEditingCategory(null);
+        }}
         title={editingCategory ? "Edit Category" : "Add Category"}
         onSave={handleSaveCategory}
         initialValue={editingCategory?.name || ""}

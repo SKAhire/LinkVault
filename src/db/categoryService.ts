@@ -15,11 +15,18 @@ export const getAllCategories = async (): Promise<CategoryWithCount[]> => {
        ORDER BY c.isDeletable ASC, c.createdAt ASC`,
     );
 
+    // Ensure linkCount is always a number (default to 0 if undefined)
+    const safeCategories = categories.map((cat) => ({
+      ...cat,
+      linkCount: typeof cat.linkCount === "number" ? cat.linkCount : 0,
+      isDeletable: Boolean(cat.isDeletable),
+    }));
+
     console.log(
       "[CategoryService] Categories query result:",
-      categories.length,
+      safeCategories.length,
     );
-    return categories;
+    return safeCategories;
   } catch (error) {
     console.error("[CategoryService] getAllCategories error:", error);
     throw error;
@@ -135,7 +142,12 @@ export const searchCategories = async (
       [`%${query}%`],
     );
 
-    return categories;
+    // Ensure linkCount is always a number (default to 0 if undefined)
+    return categories.map((cat) => ({
+      ...cat,
+      linkCount: typeof cat.linkCount === "number" ? cat.linkCount : 0,
+      isDeletable: Boolean(cat.isDeletable),
+    }));
   } catch (error) {
     console.error("[CategoryService] searchCategories error:", error);
     throw error;
