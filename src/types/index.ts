@@ -23,6 +23,14 @@ export interface CategoryWithCount extends Category {
   linkCount: number;
 }
 
+// Category with parent information (for breadcrumb navigation)
+export interface CategoryWithParent {
+  id: number;
+  name: string;
+  parentId: number | null;
+  parentName: string | null;
+}
+
 // Link input for creating/updating
 export interface LinkInput {
   url: string;

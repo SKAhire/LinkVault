@@ -1,9 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActionSheetIOS,
-  Alert,
   Platform,
   RefreshControl,
   ScrollView,
@@ -12,27 +11,19 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Breadcrumbs from "../components/Breadcrumbs";
 import CategoryFolderCard from "../components/CategoryFolderCard";
 import CustomModal from "../components/CustomModal";
 import LinkCard from "../components/LinkCard";
 import LinkModal from "../components/LinkModal";
+import ActionModal from "../components/modals/ActionModal";
+import ActionOptionsModal from "../components/modals/ActionOptionsModal";
+import ConfirmDeleteModal from "../components/modals/ConfirmDeleteModal";
 import { useTheme } from "../context/ThemeContext";
-import {
-  createSubcategory,
-  deleteCategory,
-  getAllCategories,
-  getSubcategories,
-  renameCategory,
-} from "../db/categoryService";
-import {
-  createLink,
-  deleteLink,
-  getLinksByCategory,
-  searchLinks,
-  updateLink,
-} from "../db/linkService";
-import { Category, CategoryWithCount, Link as LinkType } from "../types";
-import { toast } from "../utils/toast";
+import { useCategoryActions } from "../hooks/useCategoryActions";
+import { useLinksData } from "../hooks/useLinksData";
+import { useModalState } from "../hooks/useModalState";
+import { CategoryWithCount, Link as LinkType } from "../types";
 
 const LinksScreen: React.FC<{ prefilledUrl?: string }> = ({ prefilledUrl }) => {
   const { categoryId, categoryName, parentId } = useLocalSearchParams<{
@@ -43,21 +34,62 @@ const LinksScreen: React.FC<{ prefilledUrl?: string }> = ({ prefilledUrl }) => {
   const router = useRouter();
   const { isDark } = useTheme();
 
-  const [links, setLinks] = useState<LinkType[]>([]);
-  const [subcategories, setSubcategories] = useState<CategoryWithCount[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const catId = parseInt(categoryId || "0", 10);
+  const parentCatId = parentId ? parseInt(parentId, 10) : null;
   const [searchQuery, setSearchQuery] = useState("");
-  const [refreshing, setRefreshing] = useState(false);
-  const [linkModalVisible, setLinkModalVisible] = useState(false);
-  const [subcategoryModalVisible, setSubcategoryModalVisible] = useState(false);
-  const [addOptionModalVisible, setAddOptionModalVisible] = useState(false);
-  const [editingLink, setEditingLink] = useState<LinkType | null>(null);
-  const [editingSubcategory, setEditingSubcategory] =
-    useState<CategoryWithCount | null>(null);
 
   // Determine if this category can have subcategories (only root categories)
   const canAddSubcategory =
     parentId === undefined || parentId === null || parentId === "";
+
+  // Custom hooks
+  const {
+    links,
+    subcategories,
+    categories,
+    parentCategoryInfo,
+    refreshing,
+    loadLinks,
+    handleRefresh,
+  } = useLinksData(catId, searchQuery);
+
+  const {
+    handleSaveLink,
+    handleDeleteLink,
+    handleEditLink,
+    handleSaveSubcategory,
+    handleDeleteSubcategory,
+    handleEditSubcategory,
+    handleSubcategoryPress,
+  } = useCategoryActions({
+    categoryId: catId,
+    categoryName,
+    loadLinks,
+    loadSubcategories: loadLinks, // Using loadLinks for simplicity
+  });
+
+  const {
+    linkModalVisible,
+    editingLink,
+    setLinkModalVisible,
+    setEditingLink,
+    closeLinkModal,
+    subcategoryModalVisible,
+    editingSubcategory,
+    setSubcategoryModalVisible,
+    setEditingSubcategory,
+    closeSubcategoryModal,
+    addOptionModalVisible,
+    setAddOptionModalVisible,
+    actionModalVisible,
+    setActionModalVisible,
+    selectedItem,
+    setSelectedItem,
+    closeActionModal,
+    deleteModalVisible,
+    setDeleteModalVisible,
+    closeDeleteModal,
+  } = useModalState();
 
   // Handle prefilled URL from share intent
   useEffect(() => {
@@ -65,103 +97,15 @@ const LinksScreen: React.FC<{ prefilledUrl?: string }> = ({ prefilledUrl }) => {
       console.log("[LinksScreen] Received prefilled URL:", prefilledUrl);
       setLinkModalVisible(true);
     }
-  }, [prefilledUrl]);
+  }, [prefilledUrl, setLinkModalVisible]);
 
-  const catId = parseInt(categoryId || "0", 10);
-  const parentCatId = parentId ? parseInt(parentId, 10) : null;
-
-  const loadLinks = useCallback(async () => {
-    try {
-      const data = searchQuery.trim()
-        ? await searchLinks(catId, searchQuery)
-        : await getLinksByCategory(catId);
-      setLinks(data);
-    } catch (error) {
-      console.error("Error loading links:", error);
-    }
-  }, [catId, searchQuery]);
-
-  const loadSubcategories = useCallback(async () => {
-    try {
-      const data = await getSubcategories(catId);
-      setSubcategories(data);
-    } catch (error) {
-      console.error("Error loading subcategories:", error);
-    }
-  }, [catId]);
-
-  const loadCategories = useCallback(async () => {
-    try {
-      const data = await getAllCategories();
-      setCategories(data);
-    } catch (error) {
-      console.error("Error loading categories:", error);
-    }
-  }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      loadLinks();
-      loadSubcategories();
-      loadCategories();
-    }, [loadLinks, loadSubcategories, loadCategories]),
-  );
-
-  const handleRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await loadLinks();
-    await loadSubcategories();
-    setRefreshing(false);
-  }, [loadLinks, loadSubcategories]);
-
+  // Search debounce
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       loadLinks();
     }, 300);
     return () => clearTimeout(timeoutId);
   }, [searchQuery, loadLinks]);
-
-  const handleEditLink = useCallback((link: LinkType) => {
-    setEditingLink(link);
-    setLinkModalVisible(true);
-  }, []);
-
-  const handleDeleteLink = useCallback(
-    async (link: LinkType) => {
-      try {
-        await deleteLink(link.id);
-        await loadLinks();
-      } catch (error) {
-        console.error("Error deleting link:", error);
-      }
-    },
-    [loadLinks],
-  );
-
-  const handleSaveLink = useCallback(
-    async (url: string, categoryId: number) => {
-      try {
-        if (editingLink) {
-          await updateLink(editingLink.id, { url, categoryId });
-          toast.success("Link updated");
-        } else {
-          await createLink({ url, categoryId });
-          toast.success("Link saved");
-        }
-        setEditingLink(null);
-        await loadLinks();
-      } catch (error) {
-        console.error("Error saving link:", error);
-        toast.error("Failed to save link");
-      }
-    },
-    [editingLink, loadLinks],
-  );
-
-  const handleCloseLinkModal = useCallback(() => {
-    setLinkModalVisible(false);
-    setEditingLink(null);
-  }, []);
 
   // Handle FAB press - show options to add link or subcategory
   const handleAddPress = useCallback(() => {
@@ -185,88 +129,105 @@ const LinksScreen: React.FC<{ prefilledUrl?: string }> = ({ prefilledUrl }) => {
         },
       );
     } else {
-      // Android - use Alert with buttons
-      const buttons: Array<{
-        text: string;
-        style?: "cancel" | "destructive";
-        onPress?: () => void;
-      }> = [
-        { text: "Cancel", style: "cancel" },
-        { text: "Add Link", onPress: () => setLinkModalVisible(true) },
-      ];
-
-      if (canAddSubcategory) {
-        buttons.push({
-          text: "Add Subcategory",
-          onPress: () => setSubcategoryModalVisible(true),
-        });
-      }
-
-      Alert.alert("Add to " + categoryName, "Choose an option", buttons, {
-        cancelable: true,
-      });
+      // Android - use ActionModal instead of Alert
+      setAddOptionModalVisible(true);
     }
-  }, [categoryName, canAddSubcategory]);
-
-  // Handle saving a subcategory (both create and update)
-  const handleSaveSubcategory = useCallback(
-    async (name: string) => {
-      try {
-        if (editingSubcategory) {
-          await renameCategory(editingSubcategory.id, name);
-          toast.success("Subcategory renamed");
-          setEditingSubcategory(null);
-        } else {
-          await createSubcategory(catId, name);
-          toast.success("Subcategory created");
-        }
-        await loadSubcategories();
-      } catch (error: any) {
-        console.error("Error saving subcategory:", error);
-        toast.error(error.message || "Failed to save subcategory");
-      }
-    },
-    [catId, loadSubcategories, editingSubcategory],
-  );
-
-  // Handle subcategory press - navigate to its links
-  const handleSubcategoryPress = useCallback(
-    (subcategory: CategoryWithCount) => {
-      router.push({
-        pathname: "/links",
-        params: {
-          categoryId: subcategory.id.toString(),
-          categoryName: subcategory.name,
-          parentId: catId.toString(),
-        },
-      });
-    },
-    [router, catId],
-  );
+  }, [
+    categoryName,
+    canAddSubcategory,
+    setLinkModalVisible,
+    setSubcategoryModalVisible,
+    setAddOptionModalVisible,
+  ]);
 
   // Handle edit subcategory
-  const handleEditSubcategory = useCallback(
+  const onEditSubcategory = useCallback(
     (subcategory: CategoryWithCount) => {
       setEditingSubcategory(subcategory);
       setSubcategoryModalVisible(true);
     },
-    [],
+    [setEditingSubcategory, setSubcategoryModalVisible],
   );
 
   // Handle delete subcategory
-  const handleDeleteSubcategory = useCallback(
+  const onDeleteSubcategory = useCallback(
     async (subcategory: CategoryWithCount) => {
-      try {
-        await deleteCategory(subcategory.id);
-        toast.success("Subcategory deleted");
-        await loadSubcategories();
-      } catch (error: any) {
-        console.error("Error deleting subcategory:", error);
-        toast.error(error.message || "Failed to delete subcategory");
-      }
+      await handleDeleteSubcategory(subcategory);
     },
-    [loadSubcategories],
+    [handleDeleteSubcategory],
   );
+
+  // Handle long press on subcategory - show action options
+  const handleSubcategoryLongPress = useCallback(
+    (subcategory: CategoryWithCount) => {
+      setSelectedItem({ type: "subcategory", item: subcategory });
+      setActionModalVisible(true);
+    },
+    [setSelectedItem, setActionModalVisible],
+  );
+
+  // Handle long press on link - show action options
+  const handleLinkLongPress = useCallback(
+    (link: LinkType) => {
+      setSelectedItem({ type: "link", item: link });
+      setActionModalVisible(true);
+    },
+    [setSelectedItem, setActionModalVisible],
+  );
+
+  // Handle edit from action modal
+  const handleEditFromAction = useCallback(() => {
+    if (selectedItem?.type === "subcategory") {
+      setActionModalVisible(false);
+      setTimeout(() => {
+        onEditSubcategory(selectedItem.item as CategoryWithCount);
+      }, 100);
+    } else if (selectedItem?.type === "link") {
+      setActionModalVisible(false);
+      setTimeout(() => {
+        setEditingLink(selectedItem.item as LinkType);
+        setLinkModalVisible(true);
+      }, 100);
+    }
+  }, [
+    selectedItem,
+    onEditSubcategory,
+    setActionModalVisible,
+    setEditingLink,
+    setLinkModalVisible,
+  ]);
+
+  // Handle delete from action modal
+  const handleDeleteFromAction = useCallback(() => {
+    if (selectedItem?.type === "subcategory") {
+      setActionModalVisible(false);
+      setTimeout(() => {
+        setDeleteModalVisible(true);
+      }, 100);
+    } else if (selectedItem?.type === "link") {
+      setActionModalVisible(false);
+      setTimeout(() => {
+        setDeleteModalVisible(true);
+      }, 100);
+    }
+  }, [selectedItem, setActionModalVisible, setDeleteModalVisible]);
+
+  // Handle delete confirmation
+  const handleDeleteConfirm = useCallback(async () => {
+    if (selectedItem?.type === "subcategory") {
+      await handleDeleteSubcategory(selectedItem.item as CategoryWithCount);
+    } else if (selectedItem?.type === "link") {
+      await handleDeleteLink(selectedItem.item as LinkType);
+    }
+    setDeleteModalVisible(false);
+    setSelectedItem(null);
+  }, [
+    selectedItem,
+    handleDeleteSubcategory,
+    handleDeleteLink,
+    setDeleteModalVisible,
+    setSelectedItem,
+  ]);
 
   // Combined list for rendering - subcategories first, then links
   const hasSubcategories = subcategories.length > 0;
@@ -296,8 +257,7 @@ const LinksScreen: React.FC<{ prefilledUrl?: string }> = ({ prefilledUrl }) => {
             linkCount={subcategory.linkCount}
             isDeletable={subcategory.isDeletable}
             onPress={() => handleSubcategoryPress(subcategory)}
-            onEdit={() => handleEditSubcategory(subcategory)}
-            onDelete={() => handleDeleteSubcategory(subcategory)}
+            onLongPress={() => handleSubcategoryLongPress(subcategory)}
           />
         ))}
       </View>
@@ -313,8 +273,12 @@ const LinksScreen: React.FC<{ prefilledUrl?: string }> = ({ prefilledUrl }) => {
         <View key={link.id} className="mb-4">
           <LinkCard
             link={link}
-            onEdit={() => handleEditLink(link)}
+            onEdit={() => {
+              setEditingLink(link);
+              setLinkModalVisible(true);
+            }}
             onDelete={() => handleDeleteLink(link)}
+            onLongPress={() => handleLinkLongPress(link)}
           />
         </View>
       ))}
@@ -370,6 +334,16 @@ const LinksScreen: React.FC<{ prefilledUrl?: string }> = ({ prefilledUrl }) => {
         </View>
       </View>
 
+      {/* Breadcrumbs Navigation */}
+      {categoryId && categoryName && (
+        <Breadcrumbs
+          categoryId={catId}
+          categoryName={categoryName}
+          parentId={parentCategoryInfo.parentId}
+          parentName={parentCategoryInfo.parentName}
+        />
+      )}
+
       {/* ScrollView with Subcategories Grid and Links List */}
       <ScrollView
         className="flex-1"
@@ -405,8 +379,10 @@ const LinksScreen: React.FC<{ prefilledUrl?: string }> = ({ prefilledUrl }) => {
       {/* Add/Edit Link Modal */}
       <LinkModal
         visible={linkModalVisible}
-        onClose={handleCloseLinkModal}
-        onSave={handleSaveLink}
+        onClose={closeLinkModal}
+        onSave={(url, categoryIdParam) =>
+          handleSaveLink(url, categoryIdParam, editingLink)
+        }
         categories={categories}
         initialUrl={editingLink?.url || prefilledUrl}
         initialCategoryId={editingLink?.categoryId || catId}
@@ -415,15 +391,65 @@ const LinksScreen: React.FC<{ prefilledUrl?: string }> = ({ prefilledUrl }) => {
       {/* Add/Edit Subcategory Modal */}
       <CustomModal
         visible={subcategoryModalVisible}
-        onClose={() => {
-          setSubcategoryModalVisible(false);
-          setEditingSubcategory(null);
-        }}
+        onClose={closeSubcategoryModal}
+        onSave={(name) => handleSaveSubcategory(name, editingSubcategory)}
         title={editingSubcategory ? "Edit Subcategory" : "Add Subcategory"}
-        onSave={handleSaveSubcategory}
         placeholder="Subcategory name"
         saveButtonText={editingSubcategory ? "Update" : "Create"}
         initialValue={editingSubcategory?.name || ""}
+      />
+
+      {/* Add Options Modal */}
+      <ActionModal
+        visible={addOptionModalVisible}
+        title={`Add to ${categoryName}`}
+        options={[
+          {
+            label: "Add Link",
+            icon: "link",
+            onPress: () => setLinkModalVisible(true),
+          },
+          ...(canAddSubcategory
+            ? [
+                {
+                  label: "Add Subcategory",
+                  icon: "folder-open",
+                  onPress: () => setSubcategoryModalVisible(true),
+                },
+              ]
+            : []),
+        ]}
+        onCancel={() => setAddOptionModalVisible(false)}
+      />
+
+      {/* Action Options Modal */}
+      <ActionOptionsModal
+        visible={actionModalVisible}
+        title={
+          selectedItem?.type === "subcategory"
+            ? (selectedItem.item as CategoryWithCount).name
+            : "Link"
+        }
+        onEdit={handleEditFromAction}
+        onDelete={handleDeleteFromAction}
+        onCancel={closeActionModal}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmDeleteModal
+        visible={deleteModalVisible}
+        title={
+          selectedItem?.type === "subcategory"
+            ? "Delete Subcategory"
+            : "Delete Link"
+        }
+        message={
+          selectedItem?.type === "subcategory"
+            ? `Are you sure you want to delete "${(selectedItem?.item as CategoryWithCount)?.name}"? All links in this category will also be deleted.`
+            : `Are you sure you want to delete this link? This action cannot be undone.`
+        }
+        onConfirm={handleDeleteConfirm}
+        onCancel={closeDeleteModal}
       />
     </View>
   );

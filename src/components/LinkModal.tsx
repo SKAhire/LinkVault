@@ -70,6 +70,15 @@ const LinkModal: React.FC<LinkModalProps> = memo(
         processedUrl = "https://" + trimmedUrl;
       }
 
+      // Validate URL format using a regex pattern
+      const urlPattern = /^https?:\/\/[\w\-]+(\.[\w\-]+)+[/#?]?.*$/;
+      if (!urlPattern.test(processedUrl)) {
+        setUrlError(
+          "Please enter a valid URL (e.g., example.com or https://example.com)",
+        );
+        return;
+      }
+
       if (!selectedCategoryId) {
         return;
       }

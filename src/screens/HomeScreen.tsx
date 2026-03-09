@@ -11,6 +11,8 @@ import {
 
 import CategoryFolderCard from "../components/CategoryFolderCard";
 import CustomModal from "../components/CustomModal";
+import ActionOptionsModal from "../components/modals/ActionOptionsModal";
+import ConfirmDeleteModal from "../components/modals/ConfirmDeleteModal";
 import { useTheme } from "../context/ThemeContext";
 
 import {
@@ -33,6 +35,12 @@ const HomeScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingCategory, setEditingCategory] =
+    useState<CategoryWithCount | null>(null);
+
+  // Action options modal state
+  const [actionModalVisible, setActionModalVisible] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [selectedCategory, setSelectedCategory] =
     useState<CategoryWithCount | null>(null);
 
   const loadCategories = useCallback(async () => {
@@ -86,11 +94,13 @@ const HomeScreen: React.FC = () => {
     async (category: CategoryWithCount) => {
       try {
         await deleteCategory(category.id);
-        toast.success("Category deleted");
+        toast.success("Category '" + category.name + "' deleted");
         loadCategories();
       } catch (error: any) {
         console.error("Error deleting category:", error);
-        toast.error(error.message || "Failed to delete category");
+        toast.error(
+          error.message || "Failed to delete category '" + category.name + "'",
+        );
       }
     },
     [loadCategories],
@@ -101,21 +111,55 @@ const HomeScreen: React.FC = () => {
       try {
         if (editingCategory) {
           await renameCategory(editingCategory.id, name);
-          toast.success("Category renamed");
+          toast.success("Category renamed to '" + name + "'");
         } else {
           await createCategory({ name });
-          toast.success("Category created");
+          toast.success("Category '" + name + "' created");
         }
 
         setEditingCategory(null);
         loadCategories();
       } catch (error: any) {
         console.error("Error saving category:", error);
-        toast.error(error.message || "Failed to save category");
+        toast.error(error.message || "Failed to save category '" + name + "'");
       }
     },
     [editingCategory, loadCategories],
   );
+
+  // Handle long press on category - show action options
+  const handleCategoryLongPress = useCallback((category: CategoryWithCount) => {
+    setSelectedCategory(category);
+    setActionModalVisible(true);
+  }, []);
+
+  // Handle edit from action modal
+  const handleEditFromAction = useCallback(() => {
+    if (selectedCategory) {
+      setActionModalVisible(false);
+      handleEditCategory(selectedCategory);
+    }
+  }, [selectedCategory, handleEditCategory]);
+
+  // Handle delete from action modal
+  const handleDeleteFromAction = useCallback(() => {
+    if (selectedCategory) {
+      setActionModalVisible(false);
+      // Delay opening delete modal slightly to allow action modal to close first
+      setTimeout(() => {
+        setDeleteModalVisible(true);
+      }, 100);
+    }
+  }, [selectedCategory]);
+
+  // Handle delete confirmation
+  const handleDeleteConfirm = useCallback(async () => {
+    if (selectedCategory) {
+      await handleDeleteCategory(selectedCategory);
+    }
+    setDeleteModalVisible(false);
+    setSelectedCategory(null);
+  }, [selectedCategory, handleDeleteCategory]);
 
   const renderItem = ({ item }: { item: CategoryWithCount }) => (
     <CategoryFolderCard
@@ -124,8 +168,7 @@ const HomeScreen: React.FC = () => {
       linkCount={item.linkCount}
       isDeletable={item.isDeletable}
       onPress={() => handleCategoryPress(item)}
-      onEdit={() => handleEditCategory(item)}
-      onDelete={() => handleDeleteCategory(item)}
+      onLongPress={() => handleCategoryLongPress(item)}
     />
   );
 
@@ -183,6 +226,30 @@ const HomeScreen: React.FC = () => {
         initialValue={editingCategory?.name || ""}
         placeholder="Category name"
         saveButtonText={editingCategory ? "Update" : "Create"}
+      />
+
+      {/* Action Options Modal */}
+      <ActionOptionsModal
+        visible={actionModalVisible}
+        title={selectedCategory?.name || ""}
+        onEdit={handleEditFromAction}
+        onDelete={handleDeleteFromAction}
+        onCancel={() => {
+          setActionModalVisible(false);
+          setSelectedCategory(null);
+        }}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmDeleteModal
+        visible={deleteModalVisible}
+        title="Delete Category"
+        message={`Are you sure you want to delete "${selectedCategory?.name}"? This action cannot be undone.`}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => {
+          setDeleteModalVisible(false);
+          setSelectedCategory(null);
+        }}
       />
     </View>
   );

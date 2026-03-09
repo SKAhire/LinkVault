@@ -2,8 +2,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import React, { useCallback, useState } from "react";
-import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import Button from "../components/Button";
+import MessageModal from "../components/modals/MessageModal";
 import { useTheme } from "../context/ThemeContext";
 import { getAllCategories } from "../db/categoryService";
 import { getAllLinks } from "../db/linkService";
@@ -22,6 +23,12 @@ const THEME_OPTIONS: {
 const SettingsScreen: React.FC = () => {
   const { theme, setTheme, isDark } = useTheme();
   const [isExporting, setIsExporting] = useState(false);
+  const [messageModalVisible, setMessageModalVisible] = useState(false);
+  const [messageModalConfig, setMessageModalConfig] = useState<{
+    title: string;
+    message: string;
+    type: "success" | "error" | "info";
+  }>({ title: "", message: "", type: "info" });
 
   const handleThemeChange = useCallback(
     (newTheme: ThemeMode) => {
@@ -73,12 +80,28 @@ const SettingsScreen: React.FC = () => {
           mimeType: "application/json",
           dialogTitle: "Export LinkVault Data",
         });
+        setMessageModalConfig({
+          title: "Success",
+          message: `Data exported successfully`,
+          type: "success",
+        });
+        setMessageModalVisible(true);
       } else {
-        Alert.alert("Success", `Data exported to ${filename}`);
+        setMessageModalConfig({
+          title: "Success",
+          message: `Data exported to ${filename}`,
+          type: "success",
+        });
+        setMessageModalVisible(true);
       }
     } catch (error) {
       console.error("Export error:", error);
-      Alert.alert("Error", "Failed to export data. Please try again.");
+      setMessageModalConfig({
+        title: "Error",
+        message: "Failed to export data. Please try again.",
+        type: "error",
+      });
+      setMessageModalVisible(true);
     } finally {
       setIsExporting(false);
     }
@@ -186,6 +209,15 @@ const SettingsScreen: React.FC = () => {
           </Text>
         </View>
       </View>
+
+      {/* Message Modal */}
+      <MessageModal
+        visible={messageModalVisible}
+        title={messageModalConfig.title}
+        message={messageModalConfig.message}
+        type={messageModalConfig.type}
+        onClose={() => setMessageModalVisible(false)}
+      />
     </ScrollView>
   );
 };
