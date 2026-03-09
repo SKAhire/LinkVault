@@ -87,6 +87,20 @@ const LinkModal: React.FC<LinkModalProps> = memo(
       onClose();
     }, [initialUrl, initialCategoryId, categories, onClose]);
 
+    // Separate parent categories and subcategories
+    // Note: Database uses parent_id, but TypeScript type uses parentId
+    const parentCategories = categories.filter(
+      (c) => !c.parentId && !c.parent_id,
+    );
+    const subcategories = categories.filter((c) => c.parentId || c.parent_id);
+
+    // Group subcategories by parent
+    const getSubcategoriesForParent = (parentId: number) => {
+      return subcategories.filter(
+        (sub) => sub.parentId === parentId || sub.parent_id === parentId,
+      );
+    };
+
     const selectedCategory = categories.find(
       (c) => c.id === selectedCategoryId,
     );
@@ -210,34 +224,142 @@ const LinkModal: React.FC<LinkModalProps> = memo(
                     }`}
                   >
                     <ScrollView>
-                      {categories.map((category) => (
-                        <TouchableOpacity
-                          key={category.id}
-                          className={`px-4 py-3 border-b ${
-                            isDark ? "border-neutral-700" : "border-gray-200"
-                          } ${
-                            category.id === selectedCategoryId
-                              ? "bg-primary/10"
-                              : ""
-                          }`}
-                          onPress={() => {
-                            setSelectedCategoryId(category.id);
-                            setShowCategoryPicker(false);
-                          }}
-                        >
-                          <Text
-                            className={`text-base ${
-                              category.id === selectedCategoryId
-                                ? "text-primary font-medium"
-                                : isDark
-                                  ? "text-white"
-                                  : "text-gray-800"
+                      {parentCategories.map((parent) => (
+                        <View key={parent.id}>
+                          {/* Parent Category */}
+                          <TouchableOpacity
+                            className={`px-4 py-3 border-b flex-row items-center ${
+                              isDark ? "border-neutral-700" : "border-gray-200"
+                            } ${
+                              parent.id === selectedCategoryId
+                                ? "bg-primary/10"
+                                : ""
                             }`}
+                            onPress={() => {
+                              setSelectedCategoryId(parent.id);
+                              setShowCategoryPicker(false);
+                            }}
                           >
-                            {category.name}
-                          </Text>
-                        </TouchableOpacity>
+                            <Ionicons
+                              name="folder"
+                              size={18}
+                              color={
+                                parent.id === selectedCategoryId
+                                  ? "#3b82f6"
+                                  : isDark
+                                    ? "#fbbf24"
+                                    : "#f59e0b"
+                              }
+                              style={{ marginRight: 10 }}
+                            />
+                            <Text
+                              className={`text-base flex-1 ${
+                                parent.id === selectedCategoryId
+                                  ? "text-primary font-semibold"
+                                  : isDark
+                                    ? "text-white"
+                                    : "text-gray-800"
+                              }`}
+                            >
+                              {parent.name}
+                            </Text>
+                          </TouchableOpacity>
+                          {/* Subcategories */}
+                          {getSubcategoriesForParent(parent.id).map((sub) => (
+                            <TouchableOpacity
+                              key={sub.id}
+                              className={`px-4 py-2 pl-8 border-b ${
+                                isDark
+                                  ? "border-neutral-700"
+                                  : "border-gray-200"
+                              } ${
+                                sub.id === selectedCategoryId
+                                  ? "bg-primary/10"
+                                  : ""
+                              }`}
+                              onPress={() => {
+                                setSelectedCategoryId(sub.id);
+                                setShowCategoryPicker(false);
+                              }}
+                            >
+                              <View className="flex-row items-center">
+                                <Ionicons
+                                  name="folder-open"
+                                  size={16}
+                                  color={
+                                    sub.id === selectedCategoryId
+                                      ? "#3b82f6"
+                                      : isDark
+                                        ? "#6b7280"
+                                        : "#9ca3af"
+                                  }
+                                  style={{ marginRight: 10 }}
+                                />
+                                <Text
+                                  className={`text-base flex-1 ${
+                                    sub.id === selectedCategoryId
+                                      ? "text-primary font-medium"
+                                      : isDark
+                                        ? "text-gray-300"
+                                        : "text-gray-600"
+                                  }`}
+                                >
+                                  {sub.name}
+                                </Text>
+                              </View>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
                       ))}
+                      {/* Categories without parent (orphan subcategories) */}
+                      {subcategories
+                        .filter(
+                          (sub) =>
+                            !parentCategories.find(
+                              (p) =>
+                                p.id === sub.parentId || p.id === sub.parent_id,
+                            ),
+                        )
+                        .map((orphan) => (
+                          <TouchableOpacity
+                            key={orphan.id}
+                            className={`px-4 py-3 border-b flex-row items-center ${
+                              isDark ? "border-neutral-700" : "border-gray-200"
+                            } ${
+                              orphan.id === selectedCategoryId
+                                ? "bg-primary/10"
+                                : ""
+                            }`}
+                            onPress={() => {
+                              setSelectedCategoryId(orphan.id);
+                              setShowCategoryPicker(false);
+                            }}
+                          >
+                            <Ionicons
+                              name="folder-open"
+                              size={16}
+                              color={
+                                orphan.id === selectedCategoryId
+                                  ? "#3b82f6"
+                                  : isDark
+                                    ? "#6b7280"
+                                    : "#9ca3af"
+                              }
+                              style={{ marginRight: 10 }}
+                            />
+                            <Text
+                              className={`text-base flex-1 ${
+                                orphan.id === selectedCategoryId
+                                  ? "text-primary font-medium"
+                                  : isDark
+                                    ? "text-gray-300"
+                                    : "text-gray-600"
+                              }`}
+                            >
+                              {orphan.name}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
                     </ScrollView>
                   </View>
                 )}

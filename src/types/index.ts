@@ -3,6 +3,7 @@ export interface Category {
   id: number;
   name: string;
   parentId?: number | null;
+  parent_id?: number | null; // Database uses snake_case
   isDeletable: boolean;
   createdAt: string;
 }

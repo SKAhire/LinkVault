@@ -15,9 +15,11 @@ export const getAllCategories = async (): Promise<CategoryWithCount[]> => {
        ORDER BY c.isDeletable ASC, c.createdAt ASC`,
     );
 
+    // Map parent_id from database to parentId for TypeScript
     // Ensure linkCount is always a number (default to 0 if undefined)
-    const safeCategories = categories.map((cat) => ({
+    const safeCategories = categories.map((cat: any) => ({
       ...cat,
+      parentId: cat.parentId ?? cat.parent_id ?? null,
       linkCount: typeof cat.linkCount === "number" ? cat.linkCount : 0,
       isDeletable: Boolean(cat.isDeletable),
     }));
@@ -48,9 +50,10 @@ export const getRootCategories = async (): Promise<CategoryWithCount[]> => {
        ORDER BY c.isDeletable ASC, c.createdAt ASC`,
     );
 
-    // Ensure linkCount is always a number (default to 0 if undefined)
-    const safeCategories = categories.map((cat) => ({
+    // Map parent_id from database to parentId for TypeScript
+    const safeCategories = categories.map((cat: any) => ({
       ...cat,
+      parentId: cat.parentId ?? cat.parent_id ?? null,
       linkCount: typeof cat.linkCount === "number" ? cat.linkCount : 0,
       isDeletable: Boolean(cat.isDeletable),
     }));
@@ -87,9 +90,10 @@ export const getSubcategories = async (
       [parentId],
     );
 
-    // Ensure linkCount is always a number (default to 0 if undefined)
-    const safeCategories = categories.map((cat) => ({
+    // Map parent_id from database to parentId for TypeScript
+    const safeCategories = categories.map((cat: any) => ({
       ...cat,
+      parentId: cat.parentId ?? cat.parent_id ?? null,
       linkCount: typeof cat.linkCount === "number" ? cat.linkCount : 0,
       isDeletable: Boolean(cat.isDeletable),
     }));

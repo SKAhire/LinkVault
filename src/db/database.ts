@@ -140,6 +140,45 @@ export const initDatabase = async (): Promise<void> => {
       }
     }
 
+    // Seed default subcategories (idempotent)
+    const DEFAULT_SUBCATEGORIES = [
+      { name: "YouTube", parentName: "Learn" },
+      { name: "Articles", parentName: "Learn" },
+      { name: "Courses", parentName: "Learn" },
+      { name: "Videos", parentName: "Rewatch" },
+      { name: "Podcasts", parentName: "Rewatch" },
+      { name: "Design", parentName: "Inspiration" },
+      { name: "UI/UX", parentName: "Inspiration" },
+      { name: "Workouts", parentName: "Fitness" },
+      { name: "Nutrition", parentName: "Fitness" },
+      { name: "Resume", parentName: "Career" },
+      { name: "Jobs", parentName: "Career" },
+    ];
+
+    for (const subcategory of DEFAULT_SUBCATEGORIES) {
+      const existingSub = await database.getFirstAsync<{ id: number }>(
+        "SELECT id FROM categories WHERE name = ?",
+        [subcategory.name],
+      );
+
+      if (!existingSub) {
+        const parent = await database.getFirstAsync<{ id: number }>(
+          "SELECT id FROM categories WHERE name = ?",
+          [subcategory.parentName],
+        );
+
+        if (parent) {
+          console.log(
+            `[DB] Seeding subcategory: ${subcategory.name} under ${subcategory.parentName}`,
+          );
+          await database.runAsync(
+            "INSERT INTO categories (name, isDeletable, createdAt, parent_id) VALUES (?, ?, ?, ?)",
+            [subcategory.name, 1, now, parent.id],
+          );
+        }
+      }
+    }
+
     console.log("[DB] Database initialization complete.");
   } catch (error) {
     console.error("[DB] Error during table creation or seeding:", error);
