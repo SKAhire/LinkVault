@@ -7,12 +7,20 @@ export const getAllCategories = async (): Promise<CategoryWithCount[]> => {
     const database = await getDatabase();
     console.log("[CategoryService] Got database connection");
 
+    // Count links from the category AND its subcategories (for non-root categories)
     const categories = await database.getAllAsync<CategoryWithCount>(
-      `SELECT c.*, COUNT(l.id) as linkCount 
+      `SELECT c.*, 
+              COALESCE(
+                (SELECT COUNT(l.id) FROM links l WHERE l.categoryId = c.id),
+                0
+              ) + COALESCE(
+                (SELECT COUNT(l2.id) FROM links l2 
+                 JOIN categories sub ON l2.categoryId = sub.id 
+                 WHERE sub.parent_id = c.id),
+                0
+              ) as linkCount 
        FROM categories c 
-       LEFT JOIN links l ON c.id = l.categoryId 
-       GROUP BY c.id 
-       ORDER BY c.isDeletable ASC, c.createdAt ASC`,
+       ORDER BY c.parent_id IS NULL DESC, c.isDeletable ASC, c.createdAt ASC`,
     );
 
     // Map parent_id from database to parentId for TypeScript
@@ -41,12 +49,20 @@ export const getRootCategories = async (): Promise<CategoryWithCount[]> => {
   try {
     const database = await getDatabase();
 
+    // Count links from the category AND its subcategories
     const categories = await database.getAllAsync<CategoryWithCount>(
-      `SELECT c.*, COUNT(l.id) as linkCount 
+      `SELECT c.*, 
+              COALESCE(
+                (SELECT COUNT(l.id) FROM links l WHERE l.categoryId = c.id),
+                0
+              ) + COALESCE(
+                (SELECT COUNT(l2.id) FROM links l2 
+                 JOIN categories sub ON l2.categoryId = sub.id 
+                 WHERE sub.parent_id = c.id),
+                0
+              ) as linkCount 
        FROM categories c 
-       LEFT JOIN links l ON c.id = l.categoryId 
        WHERE c.parent_id IS NULL
-       GROUP BY c.id 
        ORDER BY c.isDeletable ASC, c.createdAt ASC`,
     );
 
@@ -307,9 +323,19 @@ export const getCategoryLinkCount = async (id: number): Promise<number> => {
   try {
     const database = await getDatabase();
 
+    // Count links from the category AND its subcategories
     const result = await database.getFirstAsync<{ count: number }>(
-      "SELECT COUNT(*) as count FROM links WHERE categoryId = ?",
-      [id],
+      `SELECT 
+        COALESCE(
+          (SELECT COUNT(*) FROM links WHERE categoryId = ?),
+          0
+        ) + COALESCE(
+          (SELECT COUNT(l2.id) FROM links l2 
+           JOIN categories sub ON l2.categoryId = sub.id 
+           WHERE sub.parent_id = ?),
+          0
+        ) as count`,
+      [id, id],
     );
 
     return result?.count || 0;
@@ -325,12 +351,20 @@ export const searchCategories = async (
   try {
     const database = await getDatabase();
 
+    // Count links from the category AND its subcategories
     const categories = await database.getAllAsync<CategoryWithCount>(
-      `SELECT c.*, COUNT(l.id) as linkCount 
+      `SELECT c.*, 
+              COALESCE(
+                (SELECT COUNT(l.id) FROM links l WHERE l.categoryId = c.id),
+                0
+              ) + COALESCE(
+                (SELECT COUNT(l2.id) FROM links l2 
+                 JOIN categories sub ON l2.categoryId = sub.id 
+                 WHERE sub.parent_id = c.id),
+                0
+              ) as linkCount 
        FROM categories c 
-       LEFT JOIN links l ON c.id = l.categoryId 
        WHERE c.name LIKE ? AND c.parent_id IS NULL
-       GROUP BY c.id 
        ORDER BY c.isDeletable ASC, c.createdAt ASC`,
       [`%${query}%`],
     );
