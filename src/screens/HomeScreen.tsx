@@ -16,9 +16,9 @@ import { useTheme } from "../context/ThemeContext";
 import {
   createCategory,
   deleteCategory,
-  getAllCategories,
+  getRootCategories,
+  renameCategory,
   searchCategories,
-  updateCategory,
 } from "../db/categoryService";
 
 import { CategoryWithCount } from "../types";
@@ -39,7 +39,7 @@ const HomeScreen: React.FC = () => {
     try {
       const data = searchQuery.trim()
         ? await searchCategories(searchQuery)
-        : await getAllCategories();
+        : await getRootCategories();
 
       setCategories(data);
     } catch (error) {
@@ -84,31 +84,35 @@ const HomeScreen: React.FC = () => {
 
   const handleDeleteCategory = useCallback(
     async (category: CategoryWithCount) => {
-      if (!category.isDeletable) {
-        toast.error("This category cannot be deleted");
-        return;
+      try {
+        await deleteCategory(category.id);
+        toast.success("Category deleted");
+        loadCategories();
+      } catch (error: any) {
+        console.error("Error deleting category:", error);
+        toast.error(error.message || "Failed to delete category");
       }
-
-      await deleteCategory(category.id);
-      toast.success("Category deleted");
-
-      loadCategories();
     },
     [loadCategories],
   );
 
   const handleSaveCategory = useCallback(
     async (name: string) => {
-      if (editingCategory) {
-        await updateCategory(editingCategory.id, { name });
-        toast.success("Category renamed");
-      } else {
-        await createCategory({ name });
-        toast.success("Category created");
-      }
+      try {
+        if (editingCategory) {
+          await renameCategory(editingCategory.id, name);
+          toast.success("Category renamed");
+        } else {
+          await createCategory({ name });
+          toast.success("Category created");
+        }
 
-      setEditingCategory(null);
-      loadCategories();
+        setEditingCategory(null);
+        loadCategories();
+      } catch (error: any) {
+        console.error("Error saving category:", error);
+        toast.error(error.message || "Failed to save category");
+      }
     },
     [editingCategory, loadCategories],
   );
@@ -133,9 +137,7 @@ const HomeScreen: React.FC = () => {
         color={isDark ? "#6b7280" : "#9ca3af"}
       />
       <Text
-        className={`mt-4 text-lg ${
-          isDark ? "text-gray-400" : "text-gray-500"
-        }`}
+        className={`mt-4 text-lg ${isDark ? "text-gray-400" : "text-gray-500"}`}
       >
         No categories yet
       </Text>

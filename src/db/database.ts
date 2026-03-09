@@ -51,11 +51,20 @@ const runMigrations = async (
 
     const columnNames = tableInfo.map((col) => col.name.toLowerCase());
     const hasIsDeletableColumn = columnNames.includes("isdeletable");
+    const hasParentIdColumn = columnNames.includes("parent_id");
 
     if (!hasIsDeletableColumn) {
       console.log("[DB] Adding isDeletable column...");
       await database.execAsync(
         "ALTER TABLE categories ADD COLUMN isDeletable INTEGER DEFAULT 1",
+      );
+    }
+
+    // Add parent_id column for subcategories support
+    if (!hasParentIdColumn) {
+      console.log("[DB] Adding parent_id column...");
+      await database.execAsync(
+        "ALTER TABLE categories ADD COLUMN parent_id INTEGER",
       );
     }
 

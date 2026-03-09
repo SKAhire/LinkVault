@@ -39,11 +39,11 @@ const CategoryFolderCard: React.FC<CategoryFolderCardProps> = memo(
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
       // Build options based on deletable status
-      const options: string[] = ["Cancel", "Rename Category"];
+      const options: string[] = ["Cancel", "Rename"];
       let destructiveButtonIndex: number | undefined;
 
       if (isDeletable) {
-        options.push("Delete Category");
+        options.push("Delete");
         destructiveButtonIndex = 2;
       }
 
@@ -64,7 +64,7 @@ const CategoryFolderCard: React.FC<CategoryFolderCardProps> = memo(
               // Delete
               Alert.alert(
                 "Delete Category",
-                `Are you sure you want to delete "${name}"? All links in this category will also be deleted.`,
+                `Are you sure you want to delete "${name}"?`,
                 [
                   { text: "Cancel", style: "cancel" },
                   { text: "Delete", style: "destructive", onPress: onDelete },
@@ -81,17 +81,17 @@ const CategoryFolderCard: React.FC<CategoryFolderCardProps> = memo(
           onPress?: () => void;
         }[] = [
           { text: "Cancel", style: "cancel" },
-          { text: "Rename Category", onPress: onEdit },
+          { text: "Rename", onPress: onEdit },
         ];
 
         if (isDeletable) {
           buttons.push({
-            text: "Delete Category",
+            text: "Delete",
             style: "destructive",
             onPress: () => {
               Alert.alert(
                 "Delete Category",
-                `Are you sure you want to delete "${name}"? All links in this category will also be deleted.`,
+                `Are you sure you want to delete "${name}"?`,
                 [
                   { text: "Cancel", style: "cancel" },
                   { text: "Delete", style: "destructive", onPress: onDelete },
