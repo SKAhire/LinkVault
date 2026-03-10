@@ -5,6 +5,7 @@ import { ActivityIndicator, StatusBar, StyleSheet, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Toast from "react-native-toast-message";
 import "../global.css";
+import { DataProvider } from "../src/context/DataContext";
 import { ThemeProvider, useTheme } from "../src/context/ThemeContext";
 import { initDatabase } from "../src/db/database";
 import {
@@ -115,8 +116,10 @@ export default function RootLayout() {
     <ThemeProvider>
       <ShareIntentProvider>
         <GestureHandlerRootView style={{ flex: 1 }}>
-          <AppLayout />
-          <Toast config={toastConfig} />
+          <DataProvider>
+            <AppLayout />
+            <Toast config={toastConfig} />
+          </DataProvider>
         </GestureHandlerRootView>
       </ShareIntentProvider>
     </ThemeProvider>

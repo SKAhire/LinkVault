@@ -19,11 +19,11 @@ import LinkModal from "../components/LinkModal";
 import ActionModal from "../components/modals/ActionModal";
 import ActionOptionsModal from "../components/modals/ActionOptionsModal";
 import ConfirmDeleteModal from "../components/modals/ConfirmDeleteModal";
+import { useData } from "../context/DataContext";
 import { useTheme } from "../context/ThemeContext";
-import { useCategoryActions } from "../hooks/useCategoryActions";
-import { useLinksData } from "../hooks/useLinksData";
 import { useModalState } from "../hooks/useModalState";
 import { CategoryWithCount, Link as LinkType } from "../types";
+import { toast } from "../utils/toast";
 
 const LinksScreen: React.FC<{ prefilledUrl?: string }> = ({ prefilledUrl }) => {
   const { categoryId, categoryName, parentId } = useLocalSearchParams<{
@@ -38,36 +38,156 @@ const LinksScreen: React.FC<{ prefilledUrl?: string }> = ({ prefilledUrl }) => {
   const parentCatId = parentId ? parseInt(parentId, 10) : null;
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Use DataContext
+  const {
+    state,
+    loadLinks,
+    createLink,
+    updateLink,
+    deleteLink,
+    loadSubcategories,
+    createSubcategory,
+    deleteCategory,
+    renameCategory,
+  } = useData();
+
+  // Get links and subcategories from context state
+  const links = state.links[catId] || [];
+  const subcategories = state.subcategories[catId] || [];
+  const { categories } = state;
+
+  const [refreshing, setRefreshing] = useState(false);
+
   // Determine if this category can have subcategories (only root categories)
   const canAddSubcategory =
     parentId === undefined || parentId === null || parentId === "";
 
-  // Custom hooks
-  const {
-    links,
-    subcategories,
-    categories,
-    parentCategoryInfo,
-    refreshing,
-    loadLinks,
-    handleRefresh,
-  } = useLinksData(catId, searchQuery);
+  // Load data on mount
+  useEffect(() => {
+    const loadData = async () => {
+      await Promise.all([
+        loadLinks(catId, searchQuery),
+        loadSubcategories(catId),
+      ]);
+    };
+    loadData();
+  }, [catId, loadLinks, loadSubcategories]);
 
-  const {
-    handleSaveLink,
-    handleDeleteLink,
-    handleEditLink,
-    handleSaveSubcategory,
-    handleDeleteSubcategory,
-    handleEditSubcategory,
-    handleSubcategoryPress,
-  } = useCategoryActions({
-    categoryId: catId,
-    categoryName,
-    loadLinks,
-    loadSubcategories: loadLinks, // Using loadLinks for simplicity
-  });
+  // Search debounce
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadLinks(catId, searchQuery);
+    }, 300);
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, catId, loadLinks]);
 
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([
+      loadLinks(catId, searchQuery),
+      loadSubcategories(catId),
+    ]);
+    setRefreshing(false);
+  }, [catId, searchQuery, loadLinks, loadSubcategories]);
+
+  // Link actions
+  const handleSaveLink = useCallback(
+    async (
+      url: string,
+      categoryIdParam: number,
+      editingLink: LinkType | null = null,
+    ) => {
+      try {
+        if (editingLink) {
+          await updateLink(editingLink.id, url, categoryIdParam);
+          toast.success("Link updated in " + categoryName);
+          // Reload links to get updated data
+          await loadLinks(catId, searchQuery);
+        } else {
+          await createLink(url, categoryIdParam);
+          toast.success("Link added to " + categoryName);
+        }
+        await loadLinks(catId, searchQuery);
+      } catch (error) {
+        console.error("Error saving link:", error);
+        toast.error("Failed to save link to " + categoryName);
+      }
+    },
+    [categoryName, catId, searchQuery, createLink, updateLink, loadLinks],
+  );
+
+  const handleDeleteLink = useCallback(
+    async (link: LinkType) => {
+      try {
+        await deleteLink(link.id, catId);
+        toast.success("Link deleted from " + categoryName);
+      } catch (error) {
+        console.error("Error deleting link:", error);
+        toast.error("Failed to delete link from " + categoryName);
+      }
+    },
+    [categoryName, catId, deleteLink],
+  );
+
+  // Subcategory actions
+  const handleSaveSubcategory = useCallback(
+    async (
+      name: string,
+      editingSubcategory: CategoryWithCount | null = null,
+    ) => {
+      try {
+        if (editingSubcategory) {
+          await renameCategory(editingSubcategory.id, name);
+          toast.success("Subcategory renamed to '" + name + "'");
+        } else {
+          await createSubcategory(catId, name);
+          toast.success("Subcategory '" + name + "' added to " + categoryName);
+        }
+        await loadSubcategories(catId);
+      } catch (error: any) {
+        console.error("Error saving subcategory:", error);
+        toast.error(
+          error.message || "Failed to save subcategory to " + categoryName,
+        );
+      }
+    },
+    [catId, categoryName, createSubcategory, renameCategory, loadSubcategories],
+  );
+
+  const handleDeleteSubcategory = useCallback(
+    async (subcategory: CategoryWithCount) => {
+      try {
+        await deleteCategory(subcategory.id);
+        toast.success(
+          "Subcategory '" + subcategory.name + "' deleted from " + categoryName,
+        );
+        await loadSubcategories(catId);
+      } catch (error: any) {
+        console.error("Error deleting subcategory:", error);
+        toast.error(
+          error.message ||
+            "Failed to delete subcategory '" + subcategory.name + "'",
+        );
+      }
+    },
+    [categoryName, catId, deleteCategory, loadSubcategories],
+  );
+
+  const handleSubcategoryPress = useCallback(
+    (subcategory: CategoryWithCount) => {
+      router.push({
+        pathname: "/links",
+        params: {
+          categoryId: subcategory.id.toString(),
+          categoryName: subcategory.name,
+          parentId: catId.toString(),
+        },
+      });
+    },
+    [router, catId],
+  );
+
+  // Modal state
   const {
     linkModalVisible,
     editingLink,
@@ -98,14 +218,6 @@ const LinksScreen: React.FC<{ prefilledUrl?: string }> = ({ prefilledUrl }) => {
       setLinkModalVisible(true);
     }
   }, [prefilledUrl, setLinkModalVisible]);
-
-  // Search debounce
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      loadLinks();
-    }, 300);
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery, loadLinks]);
 
   // Handle FAB press - show options to add link or subcategory
   const handleAddPress = useCallback(() => {
@@ -302,6 +414,12 @@ const LinksScreen: React.FC<{ prefilledUrl?: string }> = ({ prefilledUrl }) => {
       </Text>
     </View>
   );
+
+  // Get parent category info from context
+  const parentCategoryInfo = {
+    parentId: parentCatId,
+    parentName: null, // Could be loaded if needed
+  };
 
   return (
     <View className={`flex-1 ${isDark ? "bg-baseBlack" : "bg-gray-50"}`}>

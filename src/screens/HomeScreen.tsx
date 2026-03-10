@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   FlatList,
@@ -13,15 +13,8 @@ import CategoryFolderCard from "../components/CategoryFolderCard";
 import CustomModal from "../components/CustomModal";
 import ActionOptionsModal from "../components/modals/ActionOptionsModal";
 import ConfirmDeleteModal from "../components/modals/ConfirmDeleteModal";
+import { useData } from "../context/DataContext";
 import { useTheme } from "../context/ThemeContext";
-
-import {
-  createCategory,
-  deleteCategory,
-  getRootCategories,
-  renameCategory,
-  searchCategories,
-} from "../db/categoryService";
 
 import { CategoryWithCount } from "../types";
 import { toast } from "../utils/toast";
@@ -29,9 +22,15 @@ import { toast } from "../utils/toast";
 const HomeScreen: React.FC = () => {
   const router = useRouter();
   const { isDark } = useTheme();
+  const {
+    state,
+    createCategory,
+    renameCategory,
+    deleteCategory,
+    loadRootCategories,
+  } = useData();
 
-  const [categories, setCategories] = useState<CategoryWithCount[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
+  const { rootCategories: categories } = state;
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingCategory, setEditingCategory] =
@@ -45,32 +44,23 @@ const HomeScreen: React.FC = () => {
 
   const loadCategories = useCallback(async () => {
     try {
-      const data = searchQuery.trim()
-        ? await searchCategories(searchQuery)
-        : await getRootCategories();
-
-      setCategories(data);
+      // Load root categories from context - state is updated automatically
+      await loadRootCategories();
     } catch (error) {
       console.error(error);
     }
-  }, [searchQuery]);
+  }, [loadRootCategories]);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadCategories();
-    }, [loadCategories]),
-  );
+  // Load categories on mount
+  useEffect(() => {
+    loadCategories();
+  }, [loadCategories]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadCategories();
     setRefreshing(false);
   }, [loadCategories]);
-
-  useEffect(() => {
-    const t = setTimeout(loadCategories, 300);
-    return () => clearTimeout(t);
-  }, [searchQuery]);
 
   const handleCategoryPress = useCallback(
     (category: CategoryWithCount) => {
@@ -95,7 +85,6 @@ const HomeScreen: React.FC = () => {
       try {
         await deleteCategory(category.id);
         toast.success("Category '" + category.name + "' deleted");
-        loadCategories();
       } catch (error: any) {
         console.error("Error deleting category:", error);
         toast.error(
@@ -103,7 +92,7 @@ const HomeScreen: React.FC = () => {
         );
       }
     },
-    [loadCategories],
+    [deleteCategory],
   );
 
   const handleSaveCategory = useCallback(
@@ -113,18 +102,17 @@ const HomeScreen: React.FC = () => {
           await renameCategory(editingCategory.id, name);
           toast.success("Category renamed to '" + name + "'");
         } else {
-          await createCategory({ name });
+          await createCategory(name);
           toast.success("Category '" + name + "' created");
         }
 
         setEditingCategory(null);
-        loadCategories();
       } catch (error: any) {
         console.error("Error saving category:", error);
         toast.error(error.message || "Failed to save category '" + name + "'");
       }
     },
-    [editingCategory, loadCategories],
+    [editingCategory, createCategory, renameCategory],
   );
 
   // Handle long press on category - show action options
